@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- displays site properly based on user's device -->
+        <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+        <title> Weather App </title>
+    </head>
+    <body>
+        <main> 
+            <div class="container">
+                <div class="main-header">
+                    <h1> Weather </h1>
+                </div>
+                <div class="user-button">
+                    <a href="{{ url_for('userInfo')}}"> 
+                        <img class="user-icon" src="/static/assets/user.png" alt="">
+                    </a>    <!-- change to users html page -->
+                </div>
+                <div class="subCity-button">
+                    <a href="{{ url_for('sub_city')}}"> 
+                        <img class="scity-icon" src="/static/assets/city.png" alt="">
+                    </a>    <!-- change to user's subCity html page -->
+                </div>
+                <div class="background">
+                    <img src="/static/assets/weather-home-background.jpg" alt="" class="desktop-background">
+                </div>
+                <div class="search-bar"> 
+                    <img class="search-icon" src="/static/assets/search.png" alt="">
+                    <form class="search" action="" autocomplete="off" method="post">
+                        <input type="text" name="search" id="search" tabindex="1" placeholder="Search for a city">
+                    </form>
+                </div>
+                <div class="footer">
+                    <p> This is mine weather html test </p>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

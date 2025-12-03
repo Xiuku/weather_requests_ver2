@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- displays site properly based on user's device -->
+        <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+        <title> Yours City </title>
+    </head>
+    <body>
+        <main> 
+            <div class="container">
+                <div class="change-button">
+                    <img class="chevron-icon" src="/static/assets/chevron-left.png" alt="">
+                    <a href="{{ url_for('home')}}"> TO home Page </a>
+                </div>
+                <div class="user-name">
+                    {% if user_id %}
+                        {{ user_id }}'s City
+                    {% endif %}
+                </div>
+                <div class="sub-city grid-container">
+                    {% for c in cities %}
+                    <div class="city-card">
+                        <img class="icon" src="/static/assets/{{ c.weather.lower() }}.png" alt="">
+                        <div class="info">
+                            <a class="city-name" href="/{{ c.name }}">{{ c.name }}</a>
+                            <p class="temp">{{ c.temp }}°C</p>
+                        </div>
+                        <form class="delete-form" method="POST" action="/s_city">
+                            <button  type = "submit" class="delete-button" name = "action" value="{{ c.name }}"> X </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="footer">
+                    <p> No city? Go search and Registration. </p>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
+
+
+<!-- sub_city頁面
+一個返回框  【done】
+title顯示userID 's city 【done】
+下面顯示有登入的城市方框(從city.html找概況圖片(太陽、多雲、下雨等)、city_name、氣溫)【done】
+做出登入後顯示方框，後續作排版(下滑式視窗or九宮格堆疊)  【排版問題】
+
+user.html登入後跳轉到頁面，並記下登入結果    【done】
+重新登入後改變結果
+
+homepage做一個跟user一樣的進入s_city按鈕    【done】
+
+city做按鈕登記城市到user頁面 -->

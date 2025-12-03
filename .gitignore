@@ -1,0 +1,11 @@
+# ignore all .exe file
+*.exe
+# ignore all .zip file
+*.zip
+# ignore all .mp4 file
+*.mp4
+# ignore all .ptt file
+*.ptt
+
+debug.py
+init_db.py

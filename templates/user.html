@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+        <title> User login </title>
+    </head>
+    <body>
+        <main>
+            <div class="container">
+                <div class="user-header">
+                    <img class="user-Photo" src="/static/assets/user.png" alt="">
+                </div>
+                <div class="background">
+                    <img src="/static/assets/weather-home-background.jpg" alt="" class="desktop-background">
+                </div>
+                <div class="change-button">
+                    <img class="chevron-icon" src="/static/assets/chevron-left.png" alt="">
+                    <a href="{{ url_for('home')}}">Setting city</a>
+                </div>
+                <form class="login-form" method="POST" action="/users">
+                    <div class="ID-text">
+                        User ID
+                    </div>
+                    <div class="input-bar">
+                        <img class="bar-icons" src="/static/assets/user.png" alt="">
+                        <input type="text" name="id" id="ID" tabindex="1" placeholder="input your ID" required>
+                    </div>
+                    <div class="mail-text">
+                        User Mail
+                    </div>
+                    <div class="input-bar">
+                        <img class="bar-icons" src="/static/assets/lock.png" alt="">
+                        <input type="text" name="mail" id="mail" tabindex="2" placeholder="{{message if is_error else 'input your mail' }}" class="{{ 'error-placeholder' if is_error else '' }}" required>
+                    </div>
+                    <button type="submit" class="login-btn" name="action" value="login">
+                        Login
+                    </button>
+                    <button type="submit" class="signup-btn" name="action" value="signup">
+                        Sign up
+                    </button>
+                </form>
+                <div class="footer">
+                    <p>No account?Just Sign up. Or check login, it may have yours account</p>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

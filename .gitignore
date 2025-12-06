@@ -4,8 +4,6 @@
 *.zip
 # ignore all .mp4 file
 *.mp4
-# ignore all .ptt file
-*.ptt
 
 # ignore .env,because this is kind private info. right? is not such matter to me, but everyone suggest to delete it.
 # u can go to OPENweather, get one ur's API key

@@ -1,128 +1,111 @@
-import datetime
-import requests
-import string
-from flask import Flask, render_template, request, redirect, url_for
-import os
-from dotenv import load_dotenv
-import json
-load_dotenv()
-#讀取API_KEY saves in .env
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+import math
 
-OWM_ENDPOINT = "https://pro.openweathermap.org/data/2.5/weather"
-OWM_FORECAST_ENDPOINT = "https://api.openweathermap.org/data/2.5/forecast"
-GEOCODING_API_ENDPOINT = "http://api.openweathermap.org/geo/1.0/direct"
-api_key = os.getenv("OWM_API_KEY")
-# api_key = os.environ.get("OWM_API_KEY")
+PATH = 'C:\chromedriver-win64\chromedriver.exe'
+# headless = webdriver.ChromeOptions()
+# headless.add_argument('headless')                                                                     #隱藏操作
+driver = webdriver.Chrome()
+driver.set_window_size(1280, 800)
+print(driver.get_window_size())
 
-# app = Flask(__name__)
+cid = 10017
+url = "https://www.cwa.gov.tw/V8/C/W/County/County.html?CID="                                             #天氣快照
+edit = f"{url}{cid}"
+# url = 'https://www.cwa.gov.tw/V8/C/W/County_WindTop.html'                                               #平均風速表
+# driver.implicitly_wait(5)                                                                             #等待
+driver.get(edit)
 
-# Display home page and get city name entered into search form
-# 顯示主頁面，並且取得城市名輸入進搜尋欄
-# @app. is the flask units.When lead to the route(/......) runs the def content
-# @app.route("/",methods=["GET","POST"])
-def home():
-    # if request.method == "POST":
-    #     city = request.form.get("search")
-    #     return redirect(url_for("get_weather", city=city))
-    city = input("請輸入查詢城市:")
-    return city
-    # return render_template("index.html")
 
-# @app.route("/users")
-def userInfo():
-    return render_template("user.html")
-
-# Display weather forecast for specific city using data from OpenWeather API
-# 為特定城市顯示氣象預報,資料來源於OpenWeather API
-# @app.route("/<city>", methods=["GET", "POST"])
-def get_weather(city):
-    # Format city name and get current date to display on page
-    # 設定城市名稱格式並取得現有資料顯示於頁面
-    city_name = string.capwords(city)                               #capwords回傳 字串:首字母大寫,其餘小寫
-    today = datetime.datetime.now()                                 #returns yyyy-mm-dd hh:mm:ss
-    current_date = today.strftime("%A, %B %d")                      #Full-Weekday,Full-months(name),day/months
-
-    # Get latitude and longitude for city
-    # 取得城市經緯度
-    location_params = {
-        "q": city_name,
-        "limit": 3,
-        "appid": api_key,
-    }
-
-    location_response = requests.get(GEOCODING_API_ENDPOINT, params=location_params)
-    # http://api.openweathermap.org/geo/1.0/direct?q={city name},limit={limit}&appid={API key}
-    location_data = location_response.json()
-    # loc_data_json = json.dumps(location_data)
-    # print(type(loc_data_json),loc_data_json)
+try:
     
-    # Prevent IndexError if user entered a city name with no coordinates by redirecting to error page
-    # 預防索引錯誤.如果城市名稱沒有座標導致導向錯誤頁面
-    if not location_data:
-        print("no data")
-    else:
-        lat = location_data[0]['lat']
-        lon = location_data[0]['lon']
+    name = "高雄市"
+    
+    # select = driver.find_element(By.XPATH, "//select[@id='CID']").click()
+    # citypath = f"//select[@id='CID']//option[@value='{cid}']"
+    # city = driver.find_element(By.XPATH, citypath).click()
 
-    # Get OpenWeather API data
-    # 取得OpenWeather API
-    weather_params = {
-        "lat": lat,
-        "lon": lon,
-        "appid": api_key,
-        "units": "metric",
-    }
-    weather_response = requests.get(OWM_ENDPOINT, weather_params)
-    weather_response.raise_for_status()
-    weather_data = weather_response.json()
-    # weather_json = json.dumps(weather_data)
-    # print(weather_json)
+    nowtime = driver.find_element(By.XPATH, "//div[@class='d-xl-block d-none mb-3']//span").text
+    print(nowtime)                  #時間
 
-    # Get current weather data
-    # 取得當前氣象資料
-    current_temp = round(weather_data['main']['temp'])
-    current_weather = weather_data['weather'][0]['main']
-    min_temp = round(weather_data['main']['temp_min'])
-    max_temp = round(weather_data['main']['temp_max'])
-    wind_speed = weather_data['wind']['speed']
+    weather = driver.find_element(By.XPATH, "//div[@class='col-lg-7']//li[1]//img[1]")
+    cloudcover = ''
+    print(weather.get_attribute('title'))
+    
+    match weather.get_attribute('title'):
+        case s if "晴" in s:
+            cloudcover = 'clear'
+        case s if "雨" in s:
+            cloudcover = 'rain'
+        case s if "雲" in s or "陰" in s:
+            cloudcover = 'cloudy'
+        case _:
+            cloudcover = 'unknown'
+    print(cloudcover)
+    
+    rain = driver.find_element(By.XPATH, "//div[@class='col-lg-7']//li[1]//span[3]").text
+    print(rain[5:])                 #total: 降雨機率\n{100}%
 
-    # Get five-day weather forecast data
-    # 取得未來五天天氣預報資料
-    forecast_response = requests.get(OWM_FORECAST_ENDPOINT, weather_params)
-    forecast_data = forecast_response.json()
-    # forecast_json = json.dumps(forecast_data)
-    # print(forecast_json)
+    temps = driver.find_elements(By.CLASS_NAME, "tem")
+    #multiple \s and nowtime,tomorrow morning、evening and \s
+    n_temp = [t.text for t in temps if t.text.strip()]
 
-    # Make lists of temperature and weather description data to show user
-    # 讓氣溫和天氣描述資料的list顯示給使用者
-    five_day_temp_list = [round(item['main']['temp']) for item in forecast_data['list'] if '12:00:00' in item['dt_txt']]
-    five_day_weather_list = [item['weather'][0]['main'] for item in forecast_data['list'] if '12:00:00' in item['dt_txt']]
+    print(n_temp[0])
+    # min_temp = int(n_temp[0][:2])                                   #lowest temp
+    # max_temp = int(n_temp[0][5:])                                   #highest temp
+    # current_temp = round((min_temp + max_temp) / 2)
+    # print(f"temp range: {n_temp[0]}")                               #total l_temp - h_temp
+    # print(f"current temp: {current_temp}")
+    # print(f"lowest temp: {min_temp}")
+    # print(f"highest temp: {max_temp}")
 
-    # Get next four weekdays to show user alongside weather data
-    # 取得接下來四個工作天給使用者
-    five_day_unformatted = [today, today + datetime.timedelta(days=1), today + datetime.timedelta(days=2),
-                            today + datetime.timedelta(days=3), today + datetime.timedelta(days=4)]
-    five_day_dates_list = [date.strftime("%a") for date in five_day_unformatted]
+    uv = driver.find_element(By.XPATH, "//tr[@id='ultra']//td[1]//strong[1]").text
+    print(uv)
 
-    info = [city_name,current_date,current_temp,current_weather,min_temp,max_temp,wind_speed,five_day_temp_list,five_day_weather_list,five_day_dates_list]
+    # wind_ms = driver.find_elements(By.CLASS_NAME, "wind-MS")
+    # # print(wind)
+    # winds = [w.get_attribute("textContent") for w in wind_ms]
+    # print(winds)
+    # for w in wind_ms:
+    #     print(w.get_attribute("textContent"))
+    #取得風速:平時隱藏
 
-    return info
-    # return render_template("city.html", city_name=city_name, current_date=current_date, current_temp=current_temp,
-    #                        current_weather=current_weather, min_temp=min_temp, max_temp=max_temp, wind_speed=wind_speed,
-    #                        five_day_temp_list=five_day_temp_list, five_day_weather_list=five_day_weather_list,
-    #                        five_day_dates_list=five_day_dates_list)
+    forecast_weather_get = driver.find_elements(By.XPATH, "//span[@class='signal']//img[1]")
+    forecast_weather = [w.get_attribute('title') for w in forecast_weather_get]
+    print(forecast_weather[1:6])
+    forecast_temp_get = driver.find_elements(By.CLASS_NAME, "text-center")
+    forecast_temp = [t.text for t in forecast_temp_get if t.text.strip()]
+    print(forecast_temp[1:6])
+
+    returns = []
+    returns.append(forecast_weather[1:6])
+    returns.append(forecast_temp[1:6])
+    print(returns[0][1])
+    #7-Day and night forecast(includes today), so we only need tomorrow and next 4-Days morning
+    
+    # time.sleep(10)
+
+    # date = browser.find_element(By.XPATH, "//ul[@class='datetime']//span[@class='date']")
+    # print(date.text)                                                                                  #work
+    
+except Exception as e:
+    print("error")
 
 
-# Display error page for invalid input
-# 對於無效輸入顯示錯誤頁面
-# @app.route("/error")
-def error():
-    return render_template("error.html")
 
 
-if __name__ == "__main__":
-    # city = home()
-    # print(city)
-    weather = get_weather(city="Taipei")
-    print(weather)
-    # app.run(debug=True)
+# from s_quickInfo import snapshot
+# from s_wind import wind
+
+# PATH = 'C:\chromedriver-win64\chromedriver.exe'
+# OPTION = 'headless'
+# DB = "Weather.db"
+# runs = snapshot(PATH,OPTION,"https://www.cwa.gov.tw/V8/C/W/County/County.html?CID=",DB)
+# runtwo = wind(PATH,OPTION,'https://www.cwa.gov.tw/V8/C/W/County_WindTop.html',DB)
+
+# conn = runs.get_db_connection()
+# runs.scraping(conn=conn)
+# runtwo.scraping(conn=conn)
+
+# conn.close()

@@ -1,9 +1,9 @@
-# In this project, I will commit two different versions. One is based on the original version.
-# It only adds some UI info , and database Work.
-# Version 1.
-# It still runs with API. u can append ur user info、the city u want to check, also the database can prevent you from searching for a totally different city.Because Chinese is very easy to confuse
 # Version 2.
-# I try to search weather info by selenium, grab from the Taiwan weather website
+## This is Version 2 made by selenium, scraping from the Taiwan weather website.The execution speed has decreased significantly compared to using the API. However, this is a school assignment requirement, and I have no choice. Updates will only be possible with further advancements in the algorithm.
+
+## Weather website
+- [Central Weather Administration weather forecast](https://www.cwa.gov.tw/V8/C/W/County/County.html?CID=?)
+- [Same institution : windspeed](https://www.cwa.gov.tw/V8/C/W/County_WindTop.html)
 
 ## Useful Resources
 - [OpenWeather API Documentation](https://openweathermap.org/api/one-call-3)

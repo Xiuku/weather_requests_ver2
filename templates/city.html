@@ -14,7 +14,7 @@
                     <a href="{{ url_for('home')}}"> CHANGE CITY </a>
                 </div>
                 <div class="city-header">
-                    <h1> {{ city_name }} <small> .{{ country }} </small></h1>
+                    <h1> {{ city_name }} </h1>
                     <h2> {{ current_date }} </h2>
                 </div>
                 <form class="sub-form" method="POST" action="/{{ city_name }}">
@@ -42,8 +42,8 @@
                 <div class="five-day">
                     <div class="forecast-item">
                         <p> {{ five_day_dates_list[0] }} </p>
-                        <img class="weather-icon" src="/static/assets/{{ current_weather.lower() }}.png" alt="">
-                        <p> {{ current_temp }}º </p>
+                        <img class="weather-icon" src="/static/assets/{{ five_day_weather_list[0].lower() }}.png" alt="">
+                        <p> {{ five_day_temp_list[0] }}º </p>
                     </div>
                     <div class="forecast-item">
                         <p> {{ five_day_dates_list[1] }} </p>

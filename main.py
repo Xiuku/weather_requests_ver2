@@ -35,9 +35,17 @@ def home():
     global tem_init
     global wind_init
     conn = tem_init.get_db_connection()
-    tem_init.scraping(conn=conn)
-    wind_init.scraping(conn=conn)
-    conn.close()
+    getlatest = '''select * From time Order By timestamp DESC'''
+    latest = conn.execute(getlatest).fetchone()                     #取得資料庫最新的天氣更新時間
+    today = datetime.datetime.now()
+    date = f"{today.month}/{today.day}"
+    if latest['date'] != date:                                      # if 時間對不上最新時間
+        weekday = datetime.datetime.now().strftime("%A")            # 取得weekday
+        tem_init.scraping(conn=conn)                                # 抓取最新資料
+        wind_init.scraping(conn=conn)
+        tem_init.getDate(conn,weekday,date)                         # 加入最新時間
+        conn.close()                                                # 關閉資料庫
+        # print("getting data")
     if request.method == "POST":
         city = request.form.get("search")
         return redirect(url_for("get_weather", city=city))          #一直等待,直到使用者輸入後重新導向至city.html + cityname

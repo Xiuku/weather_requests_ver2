@@ -76,6 +76,31 @@ class snapshot(spider):
         forecast.append(forecast_weather[:5])
         forecast.append(forecast_temp[:5])
         return forecast
+    
+    def getDate(self,conn,week,date):
+        workop = webdriver.ChromeOptions()
+        workop.add_argument(self.options)   #set options
+
+        driver = webdriver.Chrome(options=workop)
+        driver.set_window_size(1280, 800)   #set driver
+
+        try:
+            getTS = '''select timestamp From time Order By timestamp DESC'''
+            ts = conn.execute(getTS).fetchone()[0]
+            # latest timestamp
+            if int(ts) > 100:      #timestamp over 100, reset it
+                resetsql = '''Delete From time'''
+                conn.execute(resetsql)
+                resetTS = '''Delete From sqlite_sequence WHERE name = 'time' '''
+                conn.execute(resetTS)
+                conn.commit()
+        except Exception as e:
+            print(e)
+        finally:
+            sql = '''INSERT INTO time(week,date) VALUES (?,?)'''
+            conn.execute(sql,(week,date,))
+            conn.commit()
+            #updata nowtime into Table time
 
 
 

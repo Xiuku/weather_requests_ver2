@@ -1,12 +1,11 @@
 import datetime
-import requests
 import string
 from flask import Flask, render_template, request, redirect, url_for
+from apscheduler.schedulers.background import BackgroundScheduler
 import os
 from dotenv import load_dotenv
-import math
 import sqlite3
-import json
+from sendMail import s_Mail
 
 from s_quickInfo import snapshot
 from s_wind import wind
@@ -14,9 +13,12 @@ from s_wind import wind
 PATH = 'C:\chromedriver-win64\chromedriver.exe'
 OPTION = 'headless'
 DB = "Weather.db"
+MAIL_USER = "Yours email"
+MAIL_PASSWORD = "emali app password"
 
 tem_init = snapshot(PATH,OPTION,"https://www.cwa.gov.tw/V8/C/W/County/County.html?CID=",DB)
 wind_init = wind(PATH,OPTION,'https://www.cwa.gov.tw/V8/C/W/County_WindTop.html',DB)
+mailer = s_Mail(MAIL_USER, MAIL_PASSWORD)
 
 app = Flask(__name__)
 
@@ -24,6 +26,44 @@ def get_db_connection():
     conn = sqlite3.connect(DB)          #連線資料庫
     conn.row_factory = sqlite3.Row      #checkout fetch is work or not
     return conn
+
+def scheduled_job():
+    # print(f"[{datetime.datetime.now()}] 開始執行每日天氣更新與寄信任務...")
+    
+    conn = get_db_connection()
+    
+    try:
+        # print("正在更新天氣資料...")
+        tem_init.scraping(conn=conn)
+        wind_init.scraping(conn=conn)
+        
+        # 更新資料庫中的日期顯示
+        weekday = datetime.datetime.now().strftime("%A")
+        today = datetime.datetime.now()
+        date_str = f"{today.month}/{today.day}"
+        tem_init.getDate(conn, weekday, date_str)
+        
+        users_sql = '''SELECT ID, email FROM User'''
+        users = conn.execute(users_sql).fetchall()
+        
+        for user in users:
+            uid = user['ID']
+            u_email = user['email']
+            # print(f"正在寄送給: {uid} ({u_email})")
+            mailer.send_daily_digest(uid, u_email)
+            
+        print("所有郵件發送完畢。")
+        
+    except Exception as e:
+        print(f"排程任務發生錯誤: {e}")
+    finally:
+        conn.close()
+
+# 取得正常執行狀態時，在特定時間發送郵件
+if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=scheduled_job, trigger="cron", hour=6, minute=0)
+    scheduler.start()
 
 user_id = ""                              #保存當前登入使用者ID
 
@@ -34,16 +74,19 @@ user_id = ""                              #保存當前登入使用者ID
 def home():
     global tem_init
     global wind_init
+    
     conn = tem_init.get_db_connection()
-    getlatest = '''select * From time Order By timestamp DESC'''
-    latest = conn.execute(getlatest).fetchone()                     #取得資料庫最新的天氣更新時間
-    today = datetime.datetime.now()
-    date = f"{today.month}/{today.day}"
-    if latest['date'] != date:                                      # if 時間對不上最新時間
-        weekday = datetime.datetime.now().strftime("%A")            # 取得weekday
-        tem_init.scraping(conn=conn)                                # 抓取最新資料
-        wind_init.scraping(conn=conn)
-        tem_init.getDate(conn,weekday,date)                         # 加入最新時間
+    try:
+        getlatest = '''select * From time Order By timestamp DESC'''
+        latest = conn.execute(getlatest).fetchone()                     #取得資料庫最新的天氣更新時間
+        today = datetime.datetime.now()
+        date = f"{today.month}/{today.day}"
+        if latest is None or latest['date'] != date:                    # if 時間對不上最新時間
+            weekday = datetime.datetime.now().strftime("%A")            # 取得weekday
+            tem_init.scraping(conn=conn)                                # 抓取最新資料
+            wind_init.scraping(conn=conn)
+            tem_init.getDate(conn,weekday,date)                         # 加入最新時間
+    finally:
         conn.close()                                                # 關閉資料庫
         # print("getting data")
     if request.method == "POST":
@@ -207,7 +250,7 @@ def sub_city():
             city_name = row[0]
             cid = row[1]
 
-            cache_sql = '''SELECT temp,cloudcover From weather WHERE cid = ?'''
+            cache_sql = '''SELECT * From weather WHERE cid = ?'''
             cached_data = conn.execute(cache_sql,(cid,)).fetchone()     #取得第i個拜訪的城市天氣資料
 
             weather_info = {}
@@ -233,7 +276,6 @@ def sub_city():
         except Exception as e:
             print(e)
         finally:
-            conn.close()
             return redirect(url_for("sub_city"))
 
     #修正資料庫使其能夠抓取天氣資料

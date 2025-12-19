@@ -13,8 +13,8 @@ from s_wind import wind
 PATH = 'C:\chromedriver-win64\chromedriver.exe'
 OPTION = 'headless'
 DB = "Weather.db"
-MAIL_USER = "Yours email"
-MAIL_PASSWORD = "emali app password"
+MAIL_USER = "weathsender@gmail.com"
+MAIL_PASSWORD = "hpdg vfqg ucuq rgek"
 
 tem_init = snapshot(PATH,OPTION,"https://www.cwa.gov.tw/V8/C/W/County/County.html?CID=",DB)
 wind_init = wind(PATH,OPTION,'https://www.cwa.gov.tw/V8/C/W/County_WindTop.html',DB)
@@ -28,7 +28,7 @@ def get_db_connection():
     return conn
 
 def scheduled_job():
-    # print(f"[{datetime.datetime.now()}] 開始執行每日天氣更新與寄信任務...")
+    # print(f"[{datetime.datetime.now()}] 開始執行每日天氣更新...")
     
     conn = get_db_connection()
     
@@ -42,18 +42,29 @@ def scheduled_job():
         today = datetime.datetime.now()
         date_str = f"{today.month}/{today.day}"
         tem_init.getDate(conn, weekday, date_str)
-        
+
+        # 每日氣象判斷
+        mailer.daily_weather_summary(conn)
+                
+    except Exception as e:
+        print(f"排程任務發生錯誤: {e}")
+    finally:
+        conn.close()
+
+def daily_mail_job():
+    conn = get_db_connection()
+    try:
         users_sql = '''SELECT ID, email FROM User'''
         users = conn.execute(users_sql).fetchall()
+        # 取得所有使用者
         
         for user in users:
             uid = user['ID']
             u_email = user['email']
             # print(f"正在寄送給: {uid} ({u_email})")
-            mailer.send_daily_digest(uid, u_email)
+            mailer.send_daily_digest(uid, u_email, conn)
             
-        print("所有郵件發送完畢。")
-        
+            print("所有郵件發送完畢。")
     except Exception as e:
         print(f"排程任務發生錯誤: {e}")
     finally:
@@ -62,7 +73,10 @@ def scheduled_job():
 # 取得正常執行狀態時，在特定時間發送郵件
 if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     scheduler = BackgroundScheduler()
-    scheduler.add_job(func=scheduled_job, trigger="cron", hour=6, minute=0)
+    scheduler.add_job(func=scheduled_job, trigger="cron", hour=5, minute=40)
+    scheduler.add_job(func=scheduled_job, trigger="cron", hour=21, minute=40)
+    scheduler.add_job(func=daily_mail_job, trigger="cron", hour=6, minute=0)
+    scheduler.add_job(func=daily_mail_job, trigger="cron", hour=22, minute=0)
     scheduler.start()
 
 user_id = ""                              #保存當前登入使用者ID

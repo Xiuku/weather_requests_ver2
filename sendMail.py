@@ -9,13 +9,8 @@ class s_Mail:
         self.sender = sender
         self.app_ps = app_password
         self.db_path = db_path
-        
-    def get_db_connection(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        return conn
 
-    def _analyze_weather(self, temp_str, rainfall_str, wind_speed, uv, cloud_cover):
+    def analyze_weather(self, temp_str, rainfall_str, wind_speed, uv, cloud_cover):
         analysis = []
 
         #溫度分析
@@ -34,6 +29,9 @@ class s_Mail:
                 analysis.append(f"😎 天氣溫暖 (約{avg_temp}°C)，體感舒適。")
             else:
                 analysis.append(f"🥵 天氣炎熱 (約{avg_temp}°C)，請注意防曬與補水。")
+            
+            if int(temps[1]) - int(temps[0]) >= 9:
+                analysis.append("溫差大，請注意衣著。")
         except:
             analysis.append(f"氣溫資料 ({temp_str})。")
 
@@ -65,21 +63,35 @@ class s_Mail:
             pass
 
         return " ".join(analysis)
+    
+    def daily_weather_summary(self,conn):
+        # 取得天氣資料
+        sql = '''SELECT * FROM weather'''
+        rows = conn.execute(sql).fetchall()
 
-    def send_daily_digest(self, user_id, to_email):
-        conn = self.get_db_connection()
-        
-        # (Join): 取得 使用者訂閱 -> 城市ID -> 天氣資料
+        for row in rows:
+            advice = self.analyze_weather(row['temp'], row['rainfall'], row['windspeed'], row['UV'], row['cloudcover'])
+            # String of summary data
+            a_sql = '''INSERT INTO alarm(AID, cID, content) VALUES ("DW", ?, ?)'''
+            conn.execute(a_sql, (row['cID'], advice))
+            # Save to DB
+            
+        conn.commit()
+        conn.close()
+        # DB update
+
+    def send_daily_digest(self, user_id, to_email, conn):
+        # (Join): 取得 使用者訂閱 -> 城市ID -> 天氣資料 -> 天氣分析
         sql = '''
-        SELECT City.Name, weather.temp, weather.rainfall, weather.cloudcover, weather.windspeed, weather.UV 
-        FROM submit 
+        SELECT City.Name, weather.temp, weather.rainfall, weather.cloudcover, weather.windspeed, weather.UV, alarm.content
+        FROM submit
         JOIN City ON submit.Name = City.Name 
-        JOIN weather ON City.cID = weather.cID 
+        JOIN weather ON City.cID = weather.cID
+        JOIN alarm ON weather.cID = alarm.cID
         WHERE submit.ID = ?
         '''
         rows = conn.execute(sql, (user_id,)).fetchall()
-        conn.close()
-
+        
         if not rows:
             print(f"User {user_id} has no subscriptions.")
             return
@@ -92,9 +104,7 @@ class s_Mail:
         for row in rows:
             city_name = row['Name']
             # 獲取分析建議
-            advice = self._analyze_weather(
-                row['temp'], row['rainfall'], row['windspeed'], row['UV'], row['cloudcover']
-            )
+            advice = row['content']
             # 原始資料字串
             raw_data = f"Temp: {row['temp']}°C | Rain: {row['rainfall']} | Wind: {row['windspeed']}m/s | UV: {row['UV']} | Status: {row['cloudcover']}"
 
@@ -131,3 +141,5 @@ class s_Mail:
                 print(f"Weather digest sent successfully to {to_email}")
         except Exception as e:
             print(f"Failed to send email: {e}")
+        finally:
+            conn.close()
